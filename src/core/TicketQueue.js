@@ -6,18 +6,26 @@ import { BookingWindow } from '../models/BookingWindow.js';
 import { User } from '../models/User.js';
 
 export class TicketQueue {
-  constructor() {
+  constructor(totalSeats = Infinity) {
     this.queue = []; // Array of User objects
     this.activeWindows = new Map(); // userId -> BookingWindow
     this.userIdCounter = 1;
+    this.totalSeats = totalSeats;
+    this.availableSeats = totalSeats;
+    this.isSoldOut = false;
   }
 
   /**
    * Add a user to the end of the queue
    * @param {string} userName - Name of the user joining
-   * @returns {User} The created user object
+   * @returns {User|null} The created user object or null if sold out
    */
   join(userName) {
+    if (this.isSoldOut) {
+      console.log(`❌ Sorry ${userName}, tickets are sold out!`);
+      return null;
+    }
+
     const user = new User(this.userIdCounter++, userName);
     this.queue.push(user);
     console.log(`✅ ${userName} joined the queue.`);
@@ -31,7 +39,7 @@ export class TicketQueue {
    * @private
    */
   _checkFrontOfQueue() {
-    if (this.queue.length === 0) return;
+    if (this.queue.length === 0 || this.isSoldOut) return;
 
     const frontUser = this.queue[0];
     if (frontUser.status === 'waiting' && !this.activeWindows.has(frontUser.id)) {
@@ -64,6 +72,9 @@ export class TicketQueue {
     window.close();
     this.activeWindows.delete(userId);
 
+    // Reduce available seats
+    this.availableSeats--;
+
     // Remove user from queue
     const index = this.queue.findIndex(u => u.id === userId);
     if (index !== -1) {
@@ -71,9 +82,41 @@ export class TicketQueue {
       console.log(`✅ ${user.name} completed their booking.`);
     }
 
+    // Check if sold out
+    if (this.availableSeats <= 0) {
+      this._handleSoldOut();
+      return;
+    }
+
     this.printQueueState();
     // Check if next user should get booking window
     this._checkFrontOfQueue();
+  }
+
+  /**
+   * Handle sold out scenario - close all active windows and notify waiting users
+   * @private
+   */
+  _handleSoldOut() {
+    this.isSoldOut = true;
+    console.log('\n🚫 TICKETS SOLD OUT! 🚫');
+    console.log('No more seats available. All pending bookings have been cancelled.\n');
+
+    // Close all active booking windows
+    for (const [userId, window] of this.activeWindows) {
+      window.user.status = 'expired';
+      console.log(`❌ Booking window closed for ${window.user.name} - tickets sold out`);
+    }
+    this.activeWindows.clear();
+
+    // Mark all waiting users as expired
+    for (const user of this.queue) {
+      if (user.status === 'waiting') {
+        user.status = 'expired';
+      }
+    }
+
+    this.printQueueState();
   }
 
   /**
@@ -83,12 +126,22 @@ export class TicketQueue {
     console.log('\n📊 Current Queue State:');
     console.log('='.repeat(50));
 
-    if (this.queue.length === 0) {
-      console.log('Queue is empty');
+    if (this.isSoldOut) {
+      console.log('🚫 SOLD OUT - No more tickets available');
     } else {
+      console.log(`🎟️  Available Seats: ${this.availableSeats}/${this.totalSeats}`);
+    }
+
+    if (this.queue.length === 0) {
+      console.log('\nQueue is empty');
+    } else {
+      console.log('\nQueue:');
       this.queue.forEach((user, index) => {
         const position = index + 1;
-        const status = user.status === 'in_booking' ? '🎫 BOOKING' : '⏳ WAITING';
+        let status;
+        if (user.status === 'in_booking') status = '🎫 BOOKING';
+        else if (user.status === 'expired') status = '❌ EXPIRED';
+        else status = '⏳ WAITING';
         console.log(`  ${position}. ${user.name} [${status}]`);
       });
     }
