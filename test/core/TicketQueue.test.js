@@ -108,30 +108,28 @@ describe('TicketQueue', () => {
       assert.strictEqual(queue.bookingExpiryMs, 5000);
     });
 
-    it('should remove expired user from queue', (done) => {
+    it('should remove expired user from queue', async () => {
       const queue = new TicketQueue(Infinity, 100);
 
       queue.join('Alice');
       queue.join('Bob');
 
       // Wait for expiry
-      setTimeout(() => {
-        assert.strictEqual(queue.size, 1); // Bob should remain
-        assert.strictEqual(queue.queue[0].name, 'Bob');
-        done();
-      }, 200);
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      assert.strictEqual(queue.size, 1); // Bob should remain
+      assert.strictEqual(queue.queue[0].name, 'Bob');
     });
 
-    it('should grant window to next user after expiry', (done) => {
+    it('should grant window to next user after expiry', async () => {
       const queue = new TicketQueue(Infinity, 100);
 
       queue.join('Alice');
       queue.join('Bob');
 
-      setTimeout(() => {
-        assert.ok(queue.activeWindows.has(2)); // Bob has window now
-        done();
-      }, 200);
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      assert.ok(queue.activeWindows.has(2)); // Bob has window now
     });
   });
 
