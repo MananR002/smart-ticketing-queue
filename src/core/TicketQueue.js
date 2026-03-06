@@ -72,8 +72,8 @@ export class TicketQueue {
     window.close();
     this.activeWindows.delete(userId);
 
-    // Reduce available seats
-    this.availableSeats--;
+    // Reduce available seats (ensure it doesn't go below 0)
+    this.availableSeats = Math.max(0, this.availableSeats - 1);
 
     // Remove user from queue
     const index = this.queue.findIndex(u => u.id === userId);
@@ -99,10 +99,9 @@ export class TicketQueue {
    */
   _handleSoldOut() {
     this.isSoldOut = true;
-    console.log('\n🚫 TICKETS SOLD OUT! 🚫');
-    console.log('No more seats available. All pending bookings have been cancelled.\n');
+    this.availableSeats = 0;
 
-    // Close all active booking windows
+    // Close all active booking windows first
     for (const [userId, window] of this.activeWindows) {
       window.user.status = 'expired';
       console.log(`❌ Booking window closed for ${window.user.name} - tickets sold out`);
@@ -115,6 +114,9 @@ export class TicketQueue {
         user.status = 'expired';
       }
     }
+
+    console.log('\n🚫 TICKETS SOLD OUT! 🚫');
+    console.log('No more seats available. All pending bookings have been cancelled.\n');
 
     this.printQueueState();
   }
