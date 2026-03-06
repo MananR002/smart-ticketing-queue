@@ -1,0 +1,12 @@
+{
+  "name": "live-match-ticket-queue",
+  "version": "1.0.0",
+  "description": "A Node.js CLI library for live match ticket booking with FIFO queue system",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": ["queue", "ticketing", "booking", "cli"],
+  "license": "MIT"
+}
