@@ -29,7 +29,14 @@ export class TicketQueue {
 
     const user = new User(this.userIdCounter++, userName);
     this.queue.push(user);
+
+    const position = this.queue.length;
+    const aheadCount = position - 1;
+
     console.log(`✅ ${userName} joined the queue.`);
+    console.log(`📍 You are number ${position} in the queue.`);
+    console.log(`👥 Users ahead of you: ${aheadCount}`);
+
     this.printQueueState();
     this._checkFrontOfQueue();
     return user;
