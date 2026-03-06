@@ -5,7 +5,7 @@ import { TicketQueue } from '../../src/core/TicketQueue.js';
 describe('TicketQueue', () => {
   describe('Basic FIFO Queue', () => {
     it('should add users to the queue in FIFO order', () => {
-      const queue = new TicketQueue();
+      const queue = new TicketQueue(Infinity, null);
 
       const user1 = queue.join('Alice');
       const user2 = queue.join('Bob');
@@ -18,7 +18,7 @@ describe('TicketQueue', () => {
     });
 
     it('should grant booking window to first user in queue', () => {
-      const queue = new TicketQueue();
+      const queue = new TicketQueue(Infinity, null);
 
       queue.join('Alice');
       queue.join('Bob');
@@ -28,7 +28,7 @@ describe('TicketQueue', () => {
     });
 
     it('should complete booking and grant window to next user', () => {
-      const queue = new TicketQueue();
+      const queue = new TicketQueue(Infinity, null);
 
       queue.join('Alice');
       queue.join('Bob');
@@ -43,14 +43,14 @@ describe('TicketQueue', () => {
 
   describe('Limited Seats', () => {
     it('should initialize with fixed number of seats', () => {
-      const queue = new TicketQueue(5);
+      const queue = new TicketQueue(5, null);
 
       assert.strictEqual(queue.totalSeats, 5);
       assert.strictEqual(queue.availableSeats, 5);
     });
 
     it('should reduce available seats when booking completes', () => {
-      const queue = new TicketQueue(5);
+      const queue = new TicketQueue(5, null);
 
       queue.join('Alice');
       queue.completeBooking(1);
@@ -59,7 +59,7 @@ describe('TicketQueue', () => {
     });
 
     it('should not allow negative available seats', () => {
-      const queue = new TicketQueue(1);
+      const queue = new TicketQueue(1, null);
 
       queue.join('Alice');
       queue.completeBooking(1);
@@ -70,7 +70,7 @@ describe('TicketQueue', () => {
 
   describe('Sold Out', () => {
     it('should mark as sold out when all seats are taken', () => {
-      const queue = new TicketQueue(1);
+      const queue = new TicketQueue(1, null);
 
       queue.join('Alice');
       queue.completeBooking(1);
@@ -79,7 +79,7 @@ describe('TicketQueue', () => {
     });
 
     it('should reject new users when sold out', () => {
-      const queue = new TicketQueue(1);
+      const queue = new TicketQueue(1, null);
 
       queue.join('Alice');
       queue.completeBooking(1);
@@ -90,7 +90,7 @@ describe('TicketQueue', () => {
     });
 
     it('should close all active windows when sold out', () => {
-      const queue = new TicketQueue(1);
+      const queue = new TicketQueue(1, null);
 
       queue.join('Alice');
       queue.join('Bob');
@@ -119,6 +119,11 @@ describe('TicketQueue', () => {
 
       assert.strictEqual(queue.size, 1); // Bob should remain
       assert.strictEqual(queue.queue[0].name, 'Bob');
+
+      // Cleanup remaining timers
+      for (const window of queue.activeWindows.values()) {
+        window.expire();
+      }
     });
 
     it('should grant window to next user after expiry', async () => {
@@ -130,12 +135,17 @@ describe('TicketQueue', () => {
       await new Promise(resolve => setTimeout(resolve, 200));
 
       assert.ok(queue.activeWindows.has(2)); // Bob has window now
+
+      // Cleanup remaining timers
+      for (const window of queue.activeWindows.values()) {
+        window.expire();
+      }
     });
   });
 
   describe('Queue Position Info', () => {
     it('should track queue size correctly', () => {
-      const queue = new TicketQueue();
+      const queue = new TicketQueue(Infinity, null);
 
       assert.strictEqual(queue.size, 0);
       assert.strictEqual(queue.isEmpty, true);
@@ -147,7 +157,7 @@ describe('TicketQueue', () => {
     });
 
     it('should calculate position correctly', () => {
-      const queue = new TicketQueue();
+      const queue = new TicketQueue(Infinity, null);
 
       queue.join('Alice');
       queue.join('Bob');
