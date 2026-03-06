@@ -5,8 +5,8 @@ import { TicketQueue } from './core/TicketQueue.js';
 
 class TicketQueueCLI {
   constructor() {
-    // Initialize with only 2 seats for demo
-    this.queue = new TicketQueue(2);
+    // Initialize with 3 seats and 10-second booking expiry window
+    this.queue = new TicketQueue(3, 10000);
   }
 
   /**
@@ -14,7 +14,7 @@ class TicketQueueCLI {
    */
   async start() {
     console.log('\n🏟️  Welcome to Live Match Ticket Queue System 🏟️\n');
-    console.log('This demo shows a queue with only 2 seats available.\n');
+    console.log('This demo shows a 10-second booking window expiry.\n');
 
     // Demo: Add users to the queue
     console.log('Step 1: Adding users to the queue...\n');
@@ -25,20 +25,26 @@ class TicketQueueCLI {
 
     console.log('---\n');
 
-    // Alice completes booking
+    // Alice completes booking quickly
     console.log('Step 2: Alice completes their booking...\n');
     this.queue.completeBooking(1);
 
     console.log('---\n');
 
-    // Bob completes booking (last seat)
-    console.log('Step 3: Bob completes their booking (last seat)...\n');
-    this.queue.completeBooking(2);
+    // Wait to let Bob's booking window expire
+    console.log('Step 3: Waiting for Bob\'s booking window to expire...\n');
+    await new Promise(resolve => setTimeout(resolve, 12000));
 
     console.log('---\n');
 
-    // Try to add more users after sold out
-    console.log('Step 4: Trying to add more users after sold out...\n');
+    // Charlie should now have the booking window
+    console.log('Step 4: Charlie completes their booking...\n');
+    this.queue.completeBooking(3);
+
+    console.log('---\n');
+
+    // Add more users
+    console.log('Step 5: Adding more users...\n');
     this.queue.join('David');
     this.queue.join('Eve');
   }

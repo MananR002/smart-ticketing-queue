@@ -6,13 +6,14 @@ import { BookingWindow } from '../models/BookingWindow.js';
 import { User } from '../models/User.js';
 
 export class TicketQueue {
-  constructor(totalSeats = Infinity) {
+  constructor(totalSeats = Infinity, bookingExpiryMs = 10000) {
     this.queue = []; // Array of User objects
     this.activeWindows = new Map(); // userId -> BookingWindow
     this.userIdCounter = 1;
     this.totalSeats = totalSeats;
     this.availableSeats = totalSeats;
     this.isSoldOut = false;
+    this.bookingExpiryMs = bookingExpiryMs;
   }
 
   /**
@@ -53,7 +54,9 @@ export class TicketQueue {
    */
   _grantBookingWindow(user) {
     user.status = 'in_booking';
-    const window = new BookingWindow(user);
+    const window = new BookingWindow(user, this.bookingExpiryMs, (expiredUser) => {
+      this._handleBookingExpiry(expiredUser);
+    });
     this.activeWindows.set(user.id, window);
     console.log(`🎫 Booking window granted to ${user.name}!`);
   }
@@ -119,6 +122,29 @@ export class TicketQueue {
     console.log('No more seats available. All pending bookings have been cancelled.\n');
 
     this.printQueueState();
+  }
+
+  /**
+   * Handle booking window expiry
+   * @private
+   */
+  _handleBookingExpiry(expiredUser) {
+    if (this.isSoldOut) return;
+
+    const window = this.activeWindows.get(expiredUser.id);
+    if (!window) return;
+
+    this.activeWindows.delete(expiredUser.id);
+
+    const index = this.queue.findIndex(u => u.id === expiredUser.id);
+    if (index !== -1) {
+      const user = this.queue.splice(index, 1)[0];
+      user.status = 'expired';
+      console.log(`⏳ Booking window expired for ${user.name}. Removing from queue.`);
+    }
+
+    this.printQueueState();
+    this._checkFrontOfQueue();
   }
 
   /**
